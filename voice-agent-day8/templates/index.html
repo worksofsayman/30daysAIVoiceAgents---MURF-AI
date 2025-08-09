@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>LLM Query UI</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      background: #f9f9f9;
+    }
+    textarea {
+      width: 100%;
+      height: 100px;
+      font-size: 1rem;
+      padding: 10px;
+      resize: vertical;
+    }
+    button {
+      padding: 10px 20px;
+      font-size: 1rem;
+      margin-top: 10px;
+      cursor: pointer;
+    }
+    #response {
+      margin-top: 20px;
+      white-space: pre-wrap;
+      background: #fff;
+      padding: 15px;
+      border-radius: 5px;
+      box-shadow: 0 0 10px #ccc;
+      min-height: 100px;
+    }
+  </style>
+</head>
+<body>
+  <h2>Ask the AI (Google Gemini)</h2>
+  <textarea id="userText" placeholder="Type your question here..."></textarea>
+  <br />
+  <button id="submitBtn">Send</button>
+  
+  <div id="response" aria-live="polite"></div>
+
+  <script>
+    const submitBtn = document.getElementById('submitBtn');
+    const userText = document.getElementById('userText');
+    const responseDiv = document.getElementById('response');
+
+    submitBtn.addEventListener('click', async () => {
+      const text = userText.value.trim();
+      if (!text) {
+        alert('Please enter some text.');
+        return;
+      }
+
+      responseDiv.textContent = "Loading...";
+
+      try {
+        const res = await fetch('/llm/query', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          responseDiv.textContent = "Error: " + (err.error || 'Unknown error');
+          return;
+        }
+
+        const data = await res.json();
+        responseDiv.textContent = data.response || "No response";
+      } catch (e) {
+        responseDiv.textContent = "Failed to fetch response: " + e.message;
+      }
+    });
+  </script>
+</body>
+</html>

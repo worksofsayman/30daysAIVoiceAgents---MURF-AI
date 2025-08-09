@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Voice Agent - Day 1</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Montserrat', sans-serif;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background: linear-gradient(-45deg, #ff6b6b, #f7d794, #48dbfb, #1dd1a1);
+            background-size: 400% 400%;
+            animation: gradientBG 12s ease infinite;
+            color: white;
+        }
+
+        @keyframes gradientBG {
+            0% { background-position: 0% 50%; }
+            50% { background-position: 100% 50%; }
+            100% { background-position: 0% 50%; }
+        }
+
+        h1 {
+            font-size: 3rem;
+            opacity: 0;
+            animation: fadeIn 2s ease forwards;
+        }
+
+        button {
+            margin-top: 20px;
+            padding: 12px 24px;
+            font-size: 1.2rem;
+            border: none;
+            border-radius: 30px;
+            background-color: #ffffff;
+            color: #333;
+            cursor: pointer;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            animation: floatBtn 3s ease-in-out infinite;
+        }
+
+        button:hover {
+            transform: scale(1.1);
+            box-shadow: 0 12px 24px rgba(0,0,0,0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes floatBtn {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+    </style>
+</head>
+<body>
+    <h1>Welcome to Day 1 of Voice Agents!</h1>
+    <button onclick="greet()">Start Now</button>
+    <script src="/static/script.js"></script>
+</body>
+</html>

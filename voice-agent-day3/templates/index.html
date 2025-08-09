@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Day 3: TTS Playback</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #f4f4f4;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding-top: 100px;
+    }
+
+    h2 {
+      color: #333;
+      margin-bottom: 20px;
+    }
+
+    #textInput {
+      width: 300px;
+      padding: 10px;
+      border-radius: 5px;
+      border: 1px solid #aaa;
+      font-size: 16px;
+    }
+
+    button {
+      padding: 10px 20px;
+      margin-left: 10px;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+      transition: background-color 0.3s;
+    }
+
+    button:hover {
+      background-color: #0056b3;
+    }
+
+    audio {
+      margin-top: 30px;
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎙️ Enter Text to Generate TTS</h2>
+  <div>
+    <input type="text" id="textInput" placeholder="Type something..." />
+    <button onclick="generateAudio()">Generate & Play</button>
+  </div>
+
+  <audio id="audioPlayer" controls></audio>
+
+  <script>
+    async function generateAudio() {
+      const text = document.getElementById("textInput").value;
+      if (!text.trim()) {
+        alert("Please enter some text first!");
+        return;
+      }
+
+      const response = await fetch("/generate-audio", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ text })
+      });
+
+      if (!response.ok) {
+        alert("Error generating audio!");
+        return;
+      }
+
+      const data = await response.json();
+      const audio = document.getElementById("audioPlayer");
+      audio.src = data.audio_url;
+      audio.play();
+    }
+  </script>
+</body>
+</html>

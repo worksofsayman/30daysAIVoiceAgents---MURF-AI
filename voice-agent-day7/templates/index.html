@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Echo Murf</title>
+    <style>
+        /* Reset */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #0f172a, #1e293b);
+            color: #e2e8f0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+        }
+
+        /* Glassmorphism container */
+        .container {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(12px);
+            padding: 25px;
+            border-radius: 16px;
+            text-align: center;
+            width: 350px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        /* Title */
+        h1 {
+            font-size: 1.6rem;
+            margin-bottom: 20px;
+            color: #38bdf8;
+            letter-spacing: 1px;
+        }
+
+        /* Buttons */
+        button {
+            padding: 12px 18px;
+            margin: 8px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            cursor: pointer;
+            transition: transform 0.15s ease, box-shadow 0.15s ease;
+        }
+
+        button:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0px 4px 12px rgba(56, 189, 248, 0.4);
+        }
+
+        #recordBtn {
+            background: #22c55e;
+            color: white;
+        }
+
+        #stopBtn {
+            background: #ef4444;
+            color: white;
+        }
+
+        #sendBtn {
+            background: #3b82f6;
+            color: white;
+        }
+
+        /* Disabled state */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        /* Audio player */
+        audio {
+            margin-top: 18px;
+            width: 100%;
+            border-radius: 8px;
+        }
+
+        /* Status text */
+        #status {
+            font-weight: 500;
+            margin-top: 12px;
+            color: #fbbf24;
+        }
+
+        /* Animation */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(8px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎤 Echo Murf Bot</h1>
+        <button id="recordBtn">🎙️ Start Recording</button>
+        <button id="stopBtn" disabled>⏹️ Stop Recording</button>
+        <button id="sendBtn" disabled>📤 Send to Echo Murf</button>
+        <p id="status">Status: Idle</p>
+        <audio id="playback" controls></audio>
+    </div>
+
+    <script>
+        let mediaRecorder;
+        let audioChunks = [];
+        let audioBlob;
+
+        const recordBtn = document.getElementById("recordBtn");
+        const stopBtn = document.getElementById("stopBtn");
+        const sendBtn = document.getElementById("sendBtn");
+        const statusText = document.getElementById("status");
+        const playback = document.getElementById("playback");
+
+        recordBtn.addEventListener("click", async () => {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            mediaRecorder = new MediaRecorder(stream);
+
+            mediaRecorder.ondataavailable = e => {
+                if (e.data.size > 0) audioChunks.push(e.data);
+            };
+
+            mediaRecorder.onstop = () => {
+                audioBlob = new Blob(audioChunks, { type: "audio/wav" });
+                audioChunks = [];
+                sendBtn.disabled = false;
+                statusText.textContent = "Status: Recording stopped.";
+            };
+
+            mediaRecorder.start();
+            recordBtn.disabled = true;
+            stopBtn.disabled = false;
+            statusText.textContent = "Status: Recording...";
+        });
+
+        stopBtn.addEventListener("click", () => {
+            mediaRecorder.stop();
+            stopBtn.disabled = true;
+            recordBtn.disabled = false;
+        });
+
+        sendBtn.addEventListener("click", async () => {
+            statusText.textContent = "Status: Sending to Echo Murf...";
+            const formData = new FormData();
+            formData.append("audio", audioBlob, "recording.wav");
+
+            try {
+                const res = await fetch("http://127.0.0.1:8000/tts/echo", {
+                    method: "POST",
+                    body: formData
+                });
+                const data = await res.json();
+                if (res.ok) {
+                    playback.src = data.murf_audio_url;
+                    playback.play();
+                    statusText.textContent = `Transcript: ${data.transcript}`;
+                } else {
+                    statusText.textContent = "Error: " + data.detail;
+                }
+            } catch (err) {
+                console.error(err);
+                statusText.textContent = "Request failed.";
+            }
+        });
+    </script>
+</body>
+</html>

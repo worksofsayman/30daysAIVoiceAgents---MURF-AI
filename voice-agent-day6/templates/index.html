@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>🎧 AI Voice Agent - Transcription</title>
+  <style>
+    body {
+      background: linear-gradient(to bottom right, #0f0c29, #302b63, #24243e);
+      font-family: 'Segoe UI', sans-serif;
+      color: #fff;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    h1 {
+      font-size: 2.5em;
+      background: linear-gradient(to right, #f3ec78, #af4261);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+    }
+
+    .container {
+      background: rgba(255, 255, 255, 0.1);
+      padding: 30px;
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      width: 90%;
+      max-width: 600px;
+      box-shadow: 0 0 30px rgba(255, 255, 255, 0.1);
+      text-align: center;
+    }
+
+    input[type="file"] {
+      margin-top: 20px;
+      margin-bottom: 10px;
+      padding: 10px;
+      border-radius: 8px;
+      background-color: #ffffff20;
+      color: white;
+      border: none;
+    }
+
+    button {
+      padding: 10px 25px;
+      border: none;
+      border-radius: 8px;
+      background: #af4261;
+      color: white;
+      font-size: 1em;
+      margin-top: 10px;
+      cursor: pointer;
+      transition: background 0.3s ease;
+    }
+
+    button:hover {
+      background: #f3ec78;
+      color: black;
+    }
+
+    .transcript {
+      margin-top: 25px;
+      font-size: 1.1em;
+      white-space: pre-wrap;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Voice Agent 🎤</h1>
+  <div class="container">
+    <p>Upload an audio file and see the magic of AI transcription</p>
+    <input type="file" id="audioFile" accept="audio/*" />
+    <br />
+    <button onclick="uploadAndTranscribe()">Transcribe</button>
+
+    <div class="transcript" id="transcriptOutput"></div>
+  </div>
+
+  <script>
+    async function uploadAndTranscribe() {
+      const fileInput = document.getElementById('audioFile');
+      const file = fileInput.files[0];
+
+      if (!file) {
+        alert("Please select an audio file!");
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append("file", file);
+
+      document.getElementById("transcriptOutput").innerText = "Transcribing... ⏳";
+
+      try {
+        const response = await fetch("/transcribe/file", {
+          method: "POST",
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (data.transcript) {
+          document.getElementById("transcriptOutput").innerText = "📝 Transcription:\n\n" + data.transcript;
+        } else {
+          document.getElementById("transcriptOutput").innerText = "⚠️ Error: " + (data.error || "Unknown error");
+        }
+      } catch (err) {
+        document.getElementById("transcriptOutput").innerText = "⚠️ Failed to fetch transcription.";
+        console.error(err);
+      }
+    }
+  </script>
+</body>
+</html>
