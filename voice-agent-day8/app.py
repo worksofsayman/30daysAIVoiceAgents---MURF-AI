@@ -1,65 +1,72 @@
-from flask import Flask, request, jsonify, send_from_directory
-import requests
+from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
-from google.oauth2 import service_account
-from google.auth.transport.requests import Request
+import requests
 import os
+from dotenv import load_dotenv
+
+load_dotenv()  # load .env file if exists
 
 app = Flask(__name__)
 CORS(app)
 
-# Path to your service account JSON key file
-SERVICE_ACCOUNT_FILE = "path/to/your-service-account.json"
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY")  # get your API key from environment
 
-# Gemini API URL
-GEMINI_API_URL = "https://gemini.googleapis.com/v1/models/text-bison-001:generateText"
-
-# Scopes required for Gemini API
-SCOPES = ["https://www.googleapis.com/auth/cloud-platform"]
-
-# Load credentials from service account file
-credentials = service_account.Credentials.from_service_account_file(
-    SERVICE_ACCOUNT_FILE, scopes=SCOPES
+# Gemini API endpoint (using your project & location)
+PROJECT_ID = "day8-murf-ai"
+LOCATION = "us-central1"
+GEMINI_API_URL = (
+    f"https://{LOCATION}-aiplatform.googleapis.com/v1/projects/"
+    f"{PROJECT_ID}/locations/{LOCATION}/publishers/google/models/text-bison@001:predict"
 )
 
 @app.route('/')
 def index():
-    return send_from_directory('templates', 'index.html')
+    return render_template('index.html')
 
 @app.route('/llm/query', methods=['POST'])
 def llm_query():
-    data = request.get_json()
-    if not data or 'text' not in data:
-        return jsonify({"error": "Missing 'text' in request body"}), 400
+    try:
+        data = request.get_json(force=True)
+        if not data or 'text' not in data:
+            return jsonify({"error": "Missing 'text' in request body"}), 400
 
-    user_input = data['text']
+        user_input = data['text']
 
-    # Refresh token if needed
-    credentials.refresh(Request())
+        headers = {
+            "Content-Type": "application/json",
+            "x-goog-api-key": GEMINI_API_KEY
+        }
 
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {credentials.token}"
-    }
+        payload = {
+            "instances": [{"content": user_input}],
+            "parameters": {"temperature": 0.7, "maxOutputTokens": 256}
+        }
 
-    payload = {
-        "prompt": {"text": user_input},
-        "temperature": 0.7,
-        "maxOutputTokens": 256
-    }
+        response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
 
-    response = requests.post(GEMINI_API_URL, json=payload, headers=headers)
-    if response.status_code != 200:
-        return jsonify({
-            "error": "Failed to get response from Gemini API",
-            "details": response.text,
-            "status_code": response.status_code
-        }), 500
+        print("Gemini API status:", response.status_code)
+        print("Gemini API response:", response.text)
 
-    response_json = response.json()
-    generated_text = response_json.get("candidates", [{}])[0].get("output", "")
+        if response.status_code != 200:
+            return jsonify({
+                "error": "Failed to get response from Gemini API",
+                "details": response.text,
+                "status_code": response.status_code
+            }), 500
 
-    return jsonify({"response": generated_text})
+        response_json = response.json()
+        predictions = response_json.get("predictions", [])
+        generated_text = ""
+        if predictions and isinstance(predictions, list):
+            generated_text = predictions[0].get("content", "")
+
+        return jsonify({"response": generated_text})
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Internal server error", "details": str(e)}), 500
+
 
 if __name__ == "__main__":
     app.run(debug=True)

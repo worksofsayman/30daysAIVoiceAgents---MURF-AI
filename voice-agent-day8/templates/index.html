@@ -3,46 +3,149 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>LLM Query UI</title>
+  <title>Ask the AI (Google Gemini)</title>
   <style>
+    @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@500&display=swap');
+
+    /* Reset */
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
     body {
-      font-family: Arial, sans-serif;
+      font-family: 'Orbitron', Arial, sans-serif;
       max-width: 600px;
       margin: 40px auto;
-      padding: 0 20px;
-      background: #f9f9f9;
+      padding: 20px;
+      background: linear-gradient(135deg, #020111 0%, #3a3a52 100%);
+      color: #00fff7;
+      perspective: 1000px;
+      user-select: none;
     }
+
+    h2 {
+      text-align: center;
+      font-weight: 500;
+      font-size: 2rem;
+      margin-bottom: 20px;
+      text-shadow: 0 0 8px #00fff7;
+      transform-style: preserve-3d;
+      animation: float 6s ease-in-out infinite;
+    }
+
     textarea {
       width: 100%;
       height: 100px;
-      font-size: 1rem;
-      padding: 10px;
+      font-size: 1.2rem;
+      padding: 15px;
       resize: vertical;
+      outline: none;
+      border: 2px solid #00fff7;
+      border-radius: 12px;
+      background: transparent;
+      color: #00fff7;
+      font-family: 'Orbitron', monospace;
+      box-shadow: 0 0 15px #00fff7;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+      transform-style: preserve-3d;
     }
+
+    textarea:focus {
+      border-color: #00f9ffcc;
+      box-shadow: 0 0 25px #00f9ffcc;
+      background: rgba(0, 255, 255, 0.05);
+    }
+
     button {
-      padding: 10px 20px;
-      font-size: 1rem;
-      margin-top: 10px;
+      margin-top: 15px;
+      width: 100%;
+      padding: 15px;
+      font-size: 1.3rem;
+      font-weight: 600;
+      background: linear-gradient(45deg, #00fff7, #00a3ff);
+      border: none;
+      border-radius: 15px;
+      color: #000;
       cursor: pointer;
+      box-shadow: 0 0 15px #00fff7;
+      transition: background 0.4s ease, box-shadow 0.4s ease;
+      letter-spacing: 1px;
+      text-transform: uppercase;
+      user-select: none;
+      transform-style: preserve-3d;
+      animation: float 6s ease-in-out infinite;
     }
+
+    button:hover {
+      background: linear-gradient(45deg, #00a3ff, #00fff7);
+      box-shadow: 0 0 25px #00fff7, 0 0 40px #00a3ff;
+      transform: translateZ(10px);
+    }
+
+    button:active {
+      transform: translateZ(0);
+      box-shadow: 0 0 10px #00fff7 inset;
+    }
+
     #response {
       margin-top: 20px;
       white-space: pre-wrap;
-      background: #fff;
-      padding: 15px;
-      border-radius: 5px;
-      box-shadow: 0 0 10px #ccc;
-      min-height: 100px;
+      background: rgba(0, 255, 255, 0.05);
+      border: 2px solid #00fff7;
+      border-radius: 15px;
+      padding: 20px;
+      font-size: 1.1rem;
+      line-height: 1.5;
+      color: #00fff7;
+      box-shadow: 0 0 15px #00fff7 inset;
+      max-height: 300px;
+      overflow-y: auto;
+      font-family: 'Orbitron', monospace;
+      user-select: text;
+      transform-style: preserve-3d;
+      animation: float 6s ease-in-out infinite;
+    }
+
+    @keyframes float {
+      0%, 100% {
+        transform: translateY(0) rotateX(0) rotateY(0);
+      }
+      50% {
+        transform: translateY(-10px) rotateX(3deg) rotateY(5deg);
+      }
+    }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      body {
+        margin: 20px 10px;
+        padding: 10px;
+      }
+      h2 {
+        font-size: 1.5rem;
+      }
+      textarea {
+        font-size: 1rem;
+        height: 80px;
+      }
+      button {
+        font-size: 1.1rem;
+        padding: 12px;
+      }
+      #response {
+        font-size: 1rem;
+        max-height: 220px;
+      }
     }
   </style>
 </head>
 <body>
   <h2>Ask the AI (Google Gemini)</h2>
-  <textarea id="userText" placeholder="Type your question here..."></textarea>
-  <br />
-  <button id="submitBtn">Send</button>
-  
-  <div id="response" aria-live="polite"></div>
+  <textarea id="userText" placeholder="Type your question here..." aria-label="Enter your question"></textarea>
+  <button id="submitBtn" aria-live="polite" aria-atomic="true" aria-busy="false">Send</button>
+  <div id="response" aria-live="polite" aria-atomic="true" role="region" tabindex="0"></div>
 
   <script>
     const submitBtn = document.getElementById('submitBtn');
@@ -53,9 +156,12 @@
       const text = userText.value.trim();
       if (!text) {
         alert('Please enter some text.');
+        userText.focus();
         return;
       }
 
+      submitBtn.disabled = true;
+      submitBtn.setAttribute('aria-busy', 'true');
       responseDiv.textContent = "Loading...";
 
       try {
@@ -75,6 +181,16 @@
         responseDiv.textContent = data.response || "No response";
       } catch (e) {
         responseDiv.textContent = "Failed to fetch response: " + e.message;
+      } finally {
+        submitBtn.disabled = false;
+        submitBtn.setAttribute('aria-busy', 'false');
+      }
+    });
+
+    // Allow Ctrl+Enter or Cmd+Enter to send message
+    userText.addEventListener('keydown', (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        submitBtn.click();
       }
     });
   </script>
