@@ -1,0 +1,22 @@
+## 30 Days of AI Voice Agents | Day 14: Refactor code, clean up, and upload to Github @everyone @here
+
+You're almost halfway through. You have a slow, but working conversational bot. 
+
+Refactor the code to make it more readable and maintainable.
+for e.g. 
+- you can define schemas (pydantic models) for the request and response types for your endpoints
+- you can separate out the logic of 3rd party services (like STT, TTS), define them in a /services folder, and import and use them in your handlers. 
+- You can use logging for better logs
+- Clean up the code by removing unused imports, variables, and functions.
+
+Upload the code to Github if you haven't already. 
+
+The README.md you made yesterday should make a good addition to the github repo.
+
+**Make the repo public, and post the repo link on LinkedIn.**
+
+**Instructions:**
+
+📌 Complete the task, and post on LinkedIn BEFORE 10 AM IST tomorrow.
+
+📌 Submit here after you are done: https://forms.gle/Vqkt7QguEcHybh7RA

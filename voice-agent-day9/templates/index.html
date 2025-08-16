@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Voice Agent - Day 9</title>
+  <style>
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      background: #121212;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem;
+    }
+    button {
+      padding: 0.6rem 1.2rem;
+      margin: 1rem;
+      font-size: 1.2rem;
+      border-radius: 5px;
+      border: none;
+      cursor: pointer;
+      background: #1db954;
+      color: white;
+    }
+    button:disabled {
+      background: #555;
+      cursor: not-allowed;
+    }
+    #status {
+      margin-top: 1rem;
+      font-weight: bold;
+    }
+    audio {
+      margin-top: 1rem;
+      outline: none;
+      border-radius: 8px;
+      box-shadow: 0 0 15px #1db954aa;
+    }
+  </style>
+</head>
+<body>
+  <h1>AI Voice Agent - Day 9</h1>
+
+  <button id="startBtn">Start Recording</button>
+  <button id="stopBtn" disabled>Stop Recording</button>
+  <div id="status"></div>
+  <audio id="audioPlayback" controls></audio>
+
+  <script>
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusDiv = document.getElementById('status');
+    const audioPlayback = document.getElementById('audioPlayback');
+
+    let mediaRecorder;
+    let audioChunks = [];
+
+    startBtn.onclick = async () => {
+      audioChunks = [];
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaRecorder = new MediaRecorder(stream);
+      mediaRecorder.start();
+
+      mediaRecorder.ondataavailable = e => audioChunks.push(e.data);
+      mediaRecorder.onstart = () => {
+        statusDiv.textContent = "Recording...";
+        startBtn.disabled = true;
+        stopBtn.disabled = false;
+        audioPlayback.src = '';
+      };
+      mediaRecorder.onstop = async () => {
+        statusDiv.textContent = "Processing...";
+        const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+        const formData = new FormData();
+        formData.append('audio', audioBlob, 'input.wav');
+
+        try {
+          const res = await fetch('/llm/query', {
+            method: 'POST',
+            body: formData
+          });
+          const data = await res.json();
+          if (res.ok) {
+            statusDiv.textContent = `Transcription: ${data.transcription}\nLLM Response: ${data.llmResponse}`;
+            audioPlayback.src = data.audioFileUrl;
+            audioPlayback.play();
+          } else {
+            statusDiv.textContent = `Error: ${data.error}`;
+          }
+        } catch (err) {
+          statusDiv.textContent = `Error: ${err.message}`;
+        }
+
+        startBtn.disabled = false;
+        stopBtn.disabled = true;
+      };
+    };
+
+    stopBtn.onclick = () => {
+      if (mediaRecorder && mediaRecorder.state !== "inactive") {
+        mediaRecorder.stop();
+      }
+    };
+  </script>
+</body>
+</html>
