@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>🎙️ NebulaCast — Live Audio Stream</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <!-- Animated gradient blobs -->
+  <div class="blob blob-a"></div>
+  <div class="blob blob-b"></div>
+  <div class="blob blob-c"></div>
+
+  <main class="wrap">
+    <header class="top">
+      <h1>🎙️ Nebula<span>Cast</span></h1>
+      <div class="status-pill" id="status">Disconnected</div>
+    </header>
+
+    <section class="panel glass">
+      <div class="row">
+        <label class="label">WebSocket</label>
+        <div class="input-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" class="icon">
+            <path d="M4 7h16M4 12h16M4 17h16" stroke="currentColor" stroke-width="2" fill="none" stroke-linecap="round"/>
+          </svg>
+          <input id="wsUrl" value="ws://localhost:8000/ws/audio" />
+          <button id="connectBtn" class="btn">Connect</button>
+        </div>
+      </div>
+
+      <div class="row two">
+        <div class="metric">
+          <div class="label">Duration</div>
+          <div class="value" id="timer">00:00</div>
+        </div>
+        <div class="metric">
+          <div class="label">Bytes Sent</div>
+          <div class="value" id="bytes">0</div>
+        </div>
+        <div class="metric">
+          <div class="label">Codec</div>
+          <div class="value" id="codec">—</div>
+        </div>
+        <div class="metric">
+          <div class="label">WS Ping</div>
+          <div class="value" id="ping">—</div>
+        </div>
+      </div>
+
+      <canvas id="wave" class="wave-canvas"></canvas>
+
+      <div class="controls">
+        <button id="recordBtn" class="mic-btn" aria-label="Toggle Recording">
+          <div class="ring ring-1"></div>
+          <div class="ring ring-2"></div>
+          <div class="ring ring-3"></div>
+          <span class="mic-emoji">🎤</span>
+        </button>
+
+        <div class="inline-controls">
+          <button id="muteBtn" class="chip">🔇 Mute Monitor</button>
+          <button id="clearBtn" class="chip">🧹 Clear Stats</button>
+          <button id="testPingBtn" class="chip">📡 Ping</button>
+        </div>
+      </div>
+
+      <footer class="hint">
+        Tip: Click the glowing mic to start/stop. Files save on the server in <code>server/recordings/</code>.
+      </footer>
+    </section>
+
+    <footer class="brand">
+      <span>Built with ❤️ HTML/CSS/JS + Python (FastAPI)</span>
+    </footer>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
