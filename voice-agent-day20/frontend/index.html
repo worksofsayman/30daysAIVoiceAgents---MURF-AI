@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Day 20 — Murf WebSockets</title>
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+<div class="container">
+<header>
+<h1>30 Days of AI Voice Agents — <span>Day 20</span></h1>
+<p class="subtitle">Murf WebSockets • Base64 Audio to Console</p>
+</header>
+
+
+<main>
+<section class="card">
+<label for="inputText" class="label">Input Text</label>
+<textarea id="inputText" placeholder="Type text to convert to speech...">Hello! This is Day 20 of AI Voice Agents. Streaming response test with Murf WebSockets!</textarea>
+<div class="actions">
+<button id="btnConvert">Convert to Speech</button>
+</div>
+</section>
+
+
+<section class="card">
+<h2>Base64 Audio (for Screenshot)</h2>
+<p class="hint">This mirrors what’s printed to the console.</p>
+<pre id="base64Out" class="scroll"></pre>
+</section>
+</main>
+
+
+<footer>
+<span class="badge">Static context_id enabled</span>
+<span class="context" id="ctx"></span>
+</footer>
+</div>
+
+
+<script src="app.js"></script>
+</body>
+</html>

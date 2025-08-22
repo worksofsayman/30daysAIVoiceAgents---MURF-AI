@@ -1,0 +1,79 @@
+<!-- client.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audio Stream Client</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      background: #f9fafb;
+      color: #333;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: flex-start;
+      height: 100vh;
+      margin: 0;
+      padding: 20px;
+    }
+
+    h2 {
+      margin-bottom: 20px;
+      font-size: 1.6rem;
+      color: #2c3e50;
+      text-align: center;
+    }
+
+    #log {
+      background: #fff;
+      border: 1px solid #ddd;
+      border-radius: 10px;
+      padding: 15px;
+      width: 90%;
+      max-width: 600px;
+      height: 400px;
+      overflow-y: auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.05);
+      white-space: pre-wrap;
+    }
+
+    /* Subtle scrollbar styling */
+    #log::-webkit-scrollbar {
+      width: 8px;
+    }
+    #log::-webkit-scrollbar-thumb {
+      background-color: #bbb;
+      border-radius: 8px;
+    }
+    #log::-webkit-scrollbar-track {
+      background: #f0f0f0;
+    }
+  </style>
+</head>
+<body>
+  <h2>🎧 AI Voice Agent - Audio Streaming</h2>
+  <pre id="log"></pre>
+
+  <script>
+    const logEl = document.getElementById("log");
+    const ws = new WebSocket("ws://localhost:8765");
+
+    let audioChunks = [];
+
+    ws.onopen = () => {
+      logEl.innerText += "Connected to server...\n";
+    };
+
+    ws.onmessage = (event) => {
+      audioChunks.push(event.data);
+      logEl.innerText += `✅ Received chunk | Total: ${audioChunks.length}\n`;
+      logEl.scrollTop = logEl.scrollHeight; // auto-scroll to bottom
+    };
+
+    ws.onclose = () => {
+      logEl.innerText += `Connection closed. Total chunks received: ${audioChunks.length}\n`;
+    };
+  </script>
+</body>
+</html>

@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>LLM Streaming Demo</title>
+  <style>
+    body { font-family: Arial, sans-serif; padding: 20px; background: #f4f4f4; }
+    #output { 
+      white-space: pre-wrap; 
+      background: #fff; 
+      padding: 15px; 
+      border-radius: 8px; 
+      box-shadow: 0 2px 6px rgba(0,0,0,0.1); 
+      min-height: 100px;
+    }
+    button { margin-top: 10px; padding: 10px 20px; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <h2>⚡ Streaming LLM Response</h2>
+  <textarea id="input" rows="4" cols="50" placeholder="Enter transcript..."></textarea><br>
+  <button onclick="sendToLLM()">Send</button>
+
+  <h3>Response:</h3>
+  <div id="output"></div>
+
+  <script>
+    async function sendToLLM() {
+      const transcript = document.getElementById("input").value;
+      document.getElementById("output").innerText = "";
+
+      const response = await fetch("/stream", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ transcript })
+      });
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        document.getElementById("output").innerText += decoder.decode(value);
+      }
+    }
+  </script>
+</body>
+</html>
