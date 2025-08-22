@@ -1,0 +1,192 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Day 18 – Turn Detection Demo</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <style>
+    :root{
+      --bg:#0b0f19; --card:#131a2a; --muted:#7f8ca6; --text:#e9eef7; --accent:#6ea8fe; --ok:#22c55e; --warn:#f59e0b;
+    }
+    *{box-sizing:border-box}
+    body{margin:0; background:linear-gradient(180deg,#0b0f19,#0b1222); color:var(--text); font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,"Helvetica Neue",Arial}
+    .wrap{max-width:900px; margin:40px auto; padding:0 16px}
+    .card{background:var(--card); border:1px solid #1f283d; border-radius:18px; padding:20px; box-shadow:0 10px 30px rgba(0,0,0,.35)}
+    h1{font-size:26px; margin:0 0 6px}
+    p.lead{margin:0 0 16px; color:var(--muted)}
+    .controls{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin:12px 0 18px}
+    button{border:0; padding:12px 16px; border-radius:12px; cursor:pointer; font-weight:600; transition:.2s transform}
+    button:hover{transform:translateY(-1px)}
+    .primary{background:var(--accent); color:#081226}
+    .ghost{background:transparent; color:var(--text); border:1px solid #223255}
+    .chip{font-size:12px; padding:6px 10px; border-radius:999px; border:1px solid #223255; color:var(--muted)}
+    .meter{height:8px; background:#0e1424; border-radius:999px; overflow:hidden; border:1px solid #1f283d}
+    .bar{height:100%; width:0%; background:linear-gradient(90deg,#6ea8fe,#22c55e)}
+    .grid{display:grid; grid-template-columns:1fr; gap:16px}
+    @media(min-width:800px){.grid{grid-template-columns:1.2fr .8fr}}
+    .panel{background:#0e1526; border:1px solid #1e2a44; border-radius:14px; padding:14px}
+    .panel h3{margin:0 0 8px; font-size:14px; color:var(--muted)}
+    .tray{min-height:160px; max-height:320px; overflow:auto; padding:8px 10px; border-radius:10px; background:#0b1020; border:1px dashed #253352}
+    .turn{padding:10px 12px; background:#0f1830; border:1px solid #213055; border-radius:10px; margin:8px 0}
+    .turn small{display:block; color:var(--muted); margin-top:4px}
+    .status{display:flex; align-items:center; gap:8px; color:var(--muted)}
+    .dot{width:10px; height:10px; border-radius:50%}
+    .dot.green{background:var(--ok)} .dot.yellow{background:var(--warn)} .dot.gray{background:#3a4663}
+    footer{opacity:.7; margin-top:14px; font-size:13px; color:var(--muted)}
+    code.inline{background:#101830; border:1px solid #223057; padding:2px 6px; border-radius:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <h1>🎙️ Turn Detection Demo</h1>
+      <p class="lead">Press <b>Start</b>, speak naturally, then pause. The transcript is finalized <i>only</i> when your turn ends.</p>
+
+      <div class="controls">
+        <button id="btn" class="primary">Start</button>
+        <button id="clear" class="ghost">Clear</button>
+        <span class="chip" id="lang">16 kHz • PCM16 • mono</span>
+        <span class="status"><span class="dot gray" id="wsdot"></span><span id="wslabel">WS: disconnected</span></span>
+        <span class="status"><span class="dot gray" id="micdot"></span><span id="miclabel">Mic: idle</span></span>
+      </div>
+
+      <div class="meter"><div class="bar" id="bar"></div></div>
+
+      <div class="grid" style="margin-top:16px">
+        <div class="panel">
+          <h3>Finalized Turns</h3>
+          <div id="tray" class="tray"></div>
+        </div>
+        <div class="panel">
+          <h3>Live Status</h3>
+          <div class="tray" style="min-height:120px" id="live"></div>
+        </div>
+      </div>
+
+      <footer>
+        End-of-turn detection powered by AssemblyAI’s Universal-Streaming (<code class="inline">Turn.end_of_turn</code>). 
+        <a href="https://www.assemblyai.com/docs/speech-to-text/universal-streaming/message-sequence" target="_blank" rel="noreferrer">See Turn object</a>.
+      </footer>
+    </div>
+  </div>
+
+  <script>
+    // ------- UI helpers -------
+    const btn = document.getElementById('btn');
+    const clearBtn = document.getElementById('clear');
+    const tray = document.getElementById('tray');
+    const live = document.getElementById('live');
+    const bar = document.getElementById('bar');
+    const wsdot = document.getElementById('wsdot'), wslabel = document.getElementById('wslabel');
+    const micdot = document.getElementById('micdot'), miclabel = document.getElementById('miclabel');
+
+    function addLive(msg){ const d=document.createElement('div'); d.textContent=msg; live.prepend(d); }
+    function addTurn(text){
+      const d=document.createElement('div'); d.className='turn';
+      d.innerHTML = `<div>${text}</div><small>${new Date().toLocaleTimeString()}</small>`;
+      tray.prepend(d);
+    }
+    function setWS(state){
+      const map={connected:['green','connected'],connecting:['yellow','connecting…'],disconnected:['gray','disconnected']};
+      const [c,l]=map[state]||map.disconnected; wsdot.className='dot '+c; wslabel.textContent='WS: '+l;
+    }
+    function setMic(state){const map={active:['green','active'],starting:['yellow','starting…'],idle:['gray','idle']}; const [c,l]=map[state]||map.idle; micdot.className='dot '+c; miclabel.textContent='Mic: '+l;}
+
+    // ------- Audio capture + downsample to 16k PCM16 -------
+    let ws, mediaStream, audioCtx, workletNode, running=false;
+
+    async function start(){
+      if(running) return stop();
+      setMic('starting'); setWS('connecting');
+      // Connect WS first
+      ws = new WebSocket("ws://localhost:8000/");
+      ws.binaryType = "arraybuffer";
+
+      ws.onopen = () => { setWS('connected'); addLive('WS connected'); };
+      ws.onclose = () => { setWS('disconnected'); addLive('WS closed'); };
+      ws.onerror = (e) => addLive('WS error: '+e.message);
+
+      ws.onmessage = (evt) => {
+        try{
+          const data = JSON.parse(evt.data);
+          if(data.event === 'turn'){
+            // live partials, ignored for now
+          } else if(data.event === 'turn_end'){
+            addTurn(data.transcript || '');
+          } else if(data.event === 'info'){
+            addLive(data.message);
+          }
+        }catch{}
+      };
+
+      // Mic
+      mediaStream = await navigator.mediaDevices.getUserMedia({ audio: { channelCount: 1, noiseSuppression: true, echoCancellation: true }, video: false });
+      setMic('active');
+
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate: 48000 });
+      await audioCtx.audioWorklet.addModule(URL.createObjectURL(new Blob([`
+        class PCM16Downsampler extends AudioWorkletProcessor{
+          constructor(){super(); this._buf = []; this._acc = 0; this._n=0; this._target=16000; this._ratio = sampleRate / this._target; }
+          process(inputs){
+            const input = inputs[0]; if (input.length === 0) return true;
+            const ch = input[0]; // mono
+            const out = [];
+            for(let i=0;i<ch.length;i++){
+              this._acc += ch[i];
+              this._n++;
+              if((i % Math.floor(this._ratio)) === 0){
+                const sample = Math.max(-1, Math.min(1, this._acc/this._n));
+                const s = sample < 0 ? sample * 0x8000 : sample * 0x7FFF;
+                out.push(s);
+                this._acc=0; this._n=0;
+              }
+            }
+            // Chunk into ~100ms ≈ 1600 samples
+            const chunkSize = 1600;
+            for(let i=0;i<out.length;i+=chunkSize){
+              const slice = out.slice(i, i+chunkSize);
+              const buf = new ArrayBuffer(slice.length * 2);
+              const view = new DataView(buf);
+              for(let j=0;j<slice.length;j++){ view.setInt16(j*2, slice[j], true); }
+              this.port.postMessage(buf,[buf]);
+            }
+            return true;
+          }
+        }
+        registerProcessor('pcm16-downsampler', PCM16Downsampler);
+      `], {type: 'application/javascript'})));
+
+      const src = audioCtx.createMediaStreamSource(mediaStream);
+      workletNode = new AudioWorkletNode(audioCtx, 'pcm16-downsampler');
+      workletNode.port.onmessage = (e)=>{
+        if(ws && ws.readyState===1){ ws.send(e.data); }
+      };
+      src.connect(workletNode);
+
+      running = true;
+      btn.textContent = 'Stop';
+      addLive('Mic streaming at 16k PCM16');
+    }
+
+    function stop(){
+      running=false;
+      btn.textContent='Start';
+      try{ workletNode && workletNode.disconnect(); }catch{}
+      try{ audioCtx && audioCtx.close(); }catch{}
+      try{ mediaStream && mediaStream.getTracks().forEach(t=>t.stop()); }catch{}
+      try{ ws && ws.close(); }catch{}
+      setMic('idle'); setWS('disconnected');
+      addLive('Stopped');
+    }
+
+    btn.addEventListener('click', ()=> running?stop():start());
+    clearBtn.addEventListener('click', ()=> { tray.innerHTML=''; live.innerHTML=''; });
+
+    // Visual meter using mic amplitude (quick + lightweight)
+    setInterval(()=>{
+      if(!mediaStream) { bar.style.width='0%'; return; }
+      navigator.mediaDevices.getUserMedia({audio:true}).catch(()=>{});
+    }, 1000);
+  </script>
+</body>
+</html>
