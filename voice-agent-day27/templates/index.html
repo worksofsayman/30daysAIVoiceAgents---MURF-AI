@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Voice Agent | Day 27</title>
+<style>
+  body { font-family: 'Orbitron', sans-serif; background: linear-gradient(135deg,#1f1c2c,#928dab); color:#fff; display:flex; justify-content:center; align-items:center; height:100vh; }
+  .container { width:90%; max-width:900px; background: rgba(0,0,0,0.6); border-radius:15px; padding:20px; }
+  header { text-align:center; margin-bottom:20px; }
+  header img { width:60px; margin-bottom:10px; animation: rotateLogo 4s linear infinite; }
+  @keyframes rotateLogo { 0%{transform:rotate(0deg);} 100%{transform:rotate(360deg);} }
+  .config, .chat { margin-bottom:20px; display:flex; flex-direction:column; gap:10px; }
+  input, textarea { padding:10px; border:none; border-radius:8px; outline:none; }
+  button { padding:10px; border:none; border-radius:8px; cursor:pointer; font-weight:bold; }
+  #save-keys { background:#ff7f50; color:#fff; transition:0.3s; }
+  #save-keys:hover { background:#ff5722; }
+  #send-btn { background:#4caf50; color:#fff; transition:0.3s; }
+  #send-btn:hover { background:#45a049; }
+  #messages { height:300px; overflow-y:auto; background: rgba(255,255,255,0.05); border-radius:10px; padding:10px; display:flex; flex-direction:column; gap:10px; }
+  .message { padding:8px 12px; border-radius:10px; max-width:70%; }
+  .user { background:#ff7f50; align-self:flex-end; }
+  .ai { background:#555; align-self:flex-start; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <header>
+    <img src="https://img.icons8.com/color/96/000000/robot-2.png" alt="AI Logo">
+    <h1>AI Voice Agent</h1>
+  </header>
+
+  <div class="config">
+    <h2>API Keys Configuration 🔑</h2>
+    <input type="text" id="openai-key" placeholder="Enter OpenAI API Key">
+    <button id="save-keys">Save Key</button>
+  </div>
+
+  <div class="chat">
+    <div id="messages"></div>
+    <textarea id="user-input" placeholder="Type your message here..."></textarea>
+    <button id="send-btn">🎤 Send</button>
+  </div>
+</div>
+
+<script>
+let apiKey = "";
+
+// Elements
+const saveBtn = document.getElementById('save-keys');
+const sendBtn = document.getElementById('send-btn');
+const userInput = document.getElementById('user-input');
+const messagesDiv = document.getElementById('messages');
+
+// Save API key
+saveBtn.addEventListener('click', () => {
+  apiKey = document.getElementById('openai-key').value.trim();
+  if(apiKey) alert("API Key saved successfully!");
+  else alert("Please enter API key!");
+});
+
+// Send message
+sendBtn.addEventListener('click', async () => {
+  const text = userInput.value.trim();
+  if(!text || !apiKey) { alert("Enter message and API key!"); return; }
+
+  appendMessage(text, 'user');
+  userInput.value = '';
+  appendMessage("Thinking...", 'ai');
+
+  try {
+    const res = await fetch('/chat', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({message:text, api_key:apiKey})
+    });
+    const data = await res.json();
+    updateLastAIMessage(data.reply || data.error);
+  } catch(err) {
+    updateLastAIMessage("Error: " + err.message);
+  }
+});
+
+// Functions
+function appendMessage(msg,type){
+  const div = document.createElement('div');
+  div.className = `message ${type}`;
+  div.textContent = msg;
+  messagesDiv.appendChild(div);
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+
+function updateLastAIMessage(msg){
+  const aiMessages = document.querySelectorAll('.ai');
+  aiMessages[aiMessages.length-1].textContent = msg;
+  messagesDiv.scrollTop = messagesDiv.scrollHeight;
+}
+</script>
+
+</body>
+</html>

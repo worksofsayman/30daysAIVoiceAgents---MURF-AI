@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Voice Agent – Persona</title>
+  <style>
+    :root {
+      --bg: #0b0f17;
+      --card: #121829;
+      --text: #e6ecff;
+      --muted: #9fb0d1;
+      --accent: #6ea8fe;
+      --accent-2: #7a5cff;
+      --good: #3ddc97;
+      --bad: #ff6b6b;
+      --glass: rgba(255,255,255,0.06);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+      background:
+        radial-gradient(1200px 700px at 10% 10%, #1a2440 0%, transparent 60%),
+        radial-gradient(1200px 700px at 90% 20%, #1e1b4b 0%, transparent 60%),
+        linear-gradient(180deg, #0b0f17 0%, #0b0f17 100%);
+      color: var(--text);
+      min-height: 100dvh; display: grid; place-items: center; padding: 24px;
+    }
+    .app {
+      width: min(1100px, 100%);
+      background: linear-gradient(180deg, var(--glass), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 24px; backdrop-filter: blur(16px);
+      box-shadow: 0 20px 60px rgba(0,0,0,0.55);
+      overflow: hidden;
+    }
+    .header {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 18px 22px; border-bottom: 1px solid rgba(255,255,255,0.06);
+      background: linear-gradient(90deg, rgba(110,168,254,0.08), rgba(122,92,255,0.08));
+    }
+    .brand { display:flex; gap:12px; align-items:center; }
+    .logo {
+      width: 36px; height: 36px; border-radius: 12px;
+      background: conic-gradient(from 220deg, var(--accent), var(--accent-2));
+      box-shadow: 0 8px 24px rgba(110,168,254,0.4);
+    }
+    .title { font-weight: 800; letter-spacing: .4px; }
+    .subtitle { color: var(--muted); font-size: 13px; }
+
+    .controls {
+      display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; 
+      padding: 16px; background: rgba(255,255,255,0.03);
+      border-bottom: 1px solid rgba(255,255,255,0.06);
+    }
+    label { font-size: 12px; color: var(--muted); margin-bottom: 6px; display:block; }
+    select, input[type="text"] {
+      width: 100%; padding: 12px 14px; border-radius: 12px;
+      border: 1px solid rgba(255,255,255,0.12); background: #0f1526; color: var(--text);
+      outline: none;
+    }
+    .btn {
+      display: inline-flex; align-items: center; gap: 10px; justify-content: center;
+      padding: 12px 16px; border-radius: 999px; border: 0; cursor: pointer;
+      background: linear-gradient(180deg, var(--accent), var(--accent-2)); color: white;
+      font-weight: 700; letter-spacing:.2px; transition: transform .1s ease;
+      box-shadow: 0 8px 22px rgba(110,168,254,0.35);
+    }
+    .btn:active { transform: translateY(1px); }
+    .btn.secondary { background: #0f1526; border:1px solid rgba(255,255,255,0.12); box-shadow:none; font-weight:600; }
+
+    .main {
+      display: grid; grid-template-columns: 320px 1fr; gap: 0; min-height: 520px;
+    }
+    .side {
+      border-right: 1px solid rgba(255,255,255,0.06); padding: 16px; background: rgba(255,255,255,0.02);
+    }
+    .meter {
+      height: 80px; border-radius: 12px; background: #0f1526; display:flex; align-items:center; justify-content:center;
+      border: 1px solid rgba(255,255,255,0.12); position: relative; overflow: hidden;
+    }
+    .pulse {
+      position:absolute; width: 140%; height: 140%; border-radius: 50%;
+      background: radial-gradient(closest-side, rgba(110,168,254,0.35), transparent 70%);
+      transform: scale(0); opacity: 0; pointer-events:none;
+    }
+    .pulse.on { animation: pulse 1.4s infinite; }
+    @keyframes pulse {
+      0% { transform: scale(.2); opacity: .85; }
+      70% { transform: scale(1); opacity: .08; }
+      100% { opacity: 0; }
+    }
+
+    .chat {
+      padding: 18px; height: 520px; overflow:auto; display:flex; flex-direction:column; gap: 14px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.00));
+    }
+    .bubble { max-width: 70%; padding: 12px 14px; border-radius: 16px; line-height: 1.4; font-size: 15px; }
+    .me { align-self: flex-end; background: #183153; border:1px solid rgba(255,255,255,0.12); }
+    .bot { align-self: flex-start; background: #0f1526; border:1px solid rgba(255,255,255,0.12); }
+    .sys { align-self: center; font-size: 12px; color: var(--muted); padding:6px 10px; }
+
+    .inputbar { display:flex; gap:10px; padding: 16px; border-top: 1px solid rgba(255,255,255,0.06); background: rgba(255,255,255,0.03); }
+    textarea {
+      flex: 1; resize: none; min-height: 46px; max-height: 140px; padding: 12px 14px; border-radius: 12px;
+      border:1px solid rgba(255,255,255,0.12); background: #0f1526; color: var(--text); outline:none;
+    }
+
+    .bad { color: var(--bad); }
+    .good { color: var(--good); }
+    .muted { color: var(--muted); }
+
+    .tiny { font-size: 11px; opacity:.9; }
+    .row { display:flex; gap:10px; align-items:center; }
+  </style>
+</head>
+<body>
+  <div class="app" id="app">
+    <div class="header">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>
+          <div class="title">30 Days of AI Voice Agents – Day 24</div>
+          <div class="subtitle">Agent Persona · Web Speech API + Flask</div>
+        </div>
+      </div>
+      <button class="btn secondary" id="healthBtn" title="Backend health">Check Backend</button>
+    </div>
+
+    <div class="controls">
+      <div>
+        <label for="persona">Persona</label>
+        <select id="persona">
+          <option value="Pirate">Pirate</option>
+          <option value="Cowboy">Cowboy</option>
+          <option value="Robot">Robot</option>
+          <option value="Detective">Detective</option>
+          <option value="Professor">Professor</option>
+          <option value="Custom">Custom…</option>
+        </select>
+      </div>
+      <div>
+        <label for="customPersona">Custom Persona (if chosen)</label>
+        <input id="customPersona" type="text" placeholder="e.g., Friendly fitness coach with emojis" />
+      </div>
+      <div>
+        <label for="voiceSelect">Voice (TTS)</label>
+        <select id="voiceSelect"></select>
+        <div class="tiny muted">Uses browser speechSynthesis</div>
+      </div>
+      <div class="row" style="align-self:end;">
+        <button class="btn" id="listenBtn">🎤 Start Listening</button>
+        <button class="btn secondary" id="stopBtn">■ Stop</button>
+      </div>
+    </div>
+
+    <div class="main">
+      <aside class="side">
+        <label>Listening Meter</label>
+        <div class="meter"><div class="pulse" id="pulse"></div><div id="meterText" class="muted">Idle</div></div>
+        <div style="height:12px"></div>
+        <label>Status</label>
+        <div id="status" class="tiny muted">Ready</div>
+        <div style="height:12px"></div>
+        <label>Tips</label>
+        <ul class="tiny muted">
+          <li>Choose a persona, click <b>Start Listening</b>, speak, and the agent replies in that style.</li>
+          <li>If STT unsupported, type in the box and press Enter.</li>
+        </ul>
+      </aside>
+
+      <section style="display:flex; flex-direction:column;">
+        <div id="chat" class="chat" aria-live="polite"></div>
+        <div class="inputbar">
+          <textarea id="textInput" placeholder="Type here if your mic is off or unsupported..."></textarea>
+          <button class="btn" id="sendBtn">Send</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+    const BACKEND_URL = 'http://127.0.0.1:5000';
+
+    const chat = document.getElementById('chat');
+    const statusEl = document.getElementById('status');
+    const pulse = document.getElementById('pulse');
+    const meterText = document.getElementById('meterText');
+
+    function addBubble(text, who = 'bot') {
+      const div = document.createElement('div');
+      div.className = who === 'me' ? 'bubble me' : who === 'sys' ? 'sys' : 'bubble bot';
+      div.textContent = text;
+      chat.appendChild(div);
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function setStatus(text, kind = 'muted') {
+      statusEl.textContent = text;
+      statusEl.className = `tiny ${kind}`;
+    }
+
+    function pulseOn(on) {
+      pulse.classList.toggle('on', !!on);
+      meterText.textContent = on ? 'Listening…' : 'Idle';
+    }
+
+    const voiceSelect = document.getElementById('voiceSelect');
+    let voices = [];
+    function populateVoices() {
+      voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      voiceSelect.innerHTML = '';
+      voices.forEach((v, i) => {
+        const o = document.createElement('option');
+        o.value = i; o.textContent = `${v.name} (${v.lang})${v.default ? ' — default' : ''}`;
+        voiceSelect.appendChild(o);
+      });
+    }
+    if ('speechSynthesis' in window) {
+      populateVoices();
+      window.speechSynthesis.onvoiceschanged = populateVoices;
+    } else {
+      const o = document.createElement('option');
+      o.textContent = 'TTS not supported';
+      voiceSelect.appendChild(o);
+    }
+
+    function speak(text, persona) {
+      if (!('speechSynthesis' in window)) return;
+      const utter = new SpeechSynthesisUtterance(text);
+      const sel = Number(voiceSelect.value);
+      if (voices[sel]) utter.voice = voices[sel];
+      if (persona === 'Pirate') utter.rate = 0.95;
+      if (persona === 'Cowboy') utter.rate = 0.95;
+      if (persona === 'Robot') { utter.rate = 0.85; utter.pitch = 0.8; }
+      if (persona === 'Detective') utter.rate = 0.9;
+      if (persona === 'Professor') utter.rate = 1.0;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utter);
+    }
+
+    const listenBtn = document.getElementById('listenBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const personaSel = document.getElementById('persona');
+    const customPersona = document.getElementById('customPersona');
+    const textInput = document.getElementById('textInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    let recognizer = null;
+    let listening = false;
+    function initRecognizer() {
+      const R = window.SpeechRecognition || window.webkitSpeechRecognition;
+      if (!R) return null;
+      const rec = new R();
+      rec.continuous = false;
+      rec.interimResults = false;
+      rec.lang = 'en-US';
+      rec.onstart = () => { listening = true; pulseOn(true); setStatus('Listening…', 'good'); };
+      rec.onend = () => { listening = false; pulseOn(false); setStatus('Mic idle', 'muted'); };
+      rec.onerror = (e) => { setStatus('Mic error: ' + e.error, 'bad'); };
+      rec.onresult = (e) => {
+        const text = Array.from(e.results).map(r => r[0].transcript).join(' ').trim();
+        if (text) handleUserText(text);
+      };
+      return rec;
+    }
+    function startListening() {
+      if (!recognizer) recognizer = initRecognizer();
+      if (!recognizer) {
+        setStatus('Speech recognition not supported; type your message.', 'bad');
+        return;
+      }
+      try { recognizer.start(); } catch (_) {}
+    }
+    function stopListening() {
+      if (recognizer && listening) try { recognizer.stop(); } catch(_) {}
+    }
+    listenBtn.onclick = startListening;
+    stopBtn.onclick = stopListening;
+
+    async function askBackend(userText) {
+      const persona = personaSel.value;
+      const payload = { text: userText, persona, customPersona: customPersona.value || '' };
+      const res = await fetch(`${BACKEND_URL}/respond`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+      });
+      if (!res.ok) throw new Error('Backend error ' + res.status);
+      return await res.json();
+    }
+    async function handleUserText(txt) {
+      addBubble(txt, 'me');
+      setStatus('Thinking…');
+      addBubble('…', 'sys');
+      try {
+        const data = await askBackend(txt);
+        const personaUsed = data.persona || personaSel.value;
+        chat.querySelector('.sys:last-child').remove();
+        addBubble(data.response, 'bot');
+        speak(data.response, personaUsed);
+        setStatus('Responded as ' + personaUsed, 'good');
+      } catch (err) {
+        chat.querySelector('.sys:last-child').remove();
+        addBubble('Error: ' + (err.message || err), 'bot');
+        setStatus('Request failed', 'bad');
+      }
+    }
+
+    sendBtn.onclick = () => {
+      const v = textInput.value.trim();
+      if (v) { textInput.value=''; handleUserText(v); }
+    };
+    textInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
+    });
+
+    document.getElementById('healthBtn').onclick = async () => {
+      try {
+        const r = await fetch(`${BACKEND_URL}/health`);
+        const t = await r.text();
+        setStatus('Backend: ' + t, 'good');
+      } catch {
+        setStatus('Backend not reachable', 'bad');
+      }
+    };
+
+    addBubble('👋 Choose a persona and talk to me!', 'sys');
+  </script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Voice Agent - Special Skill</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      background: linear-gradient(to right, #667eea, #764ba2);
+      color: white;
+    }
+    .container {
+      background: rgba(0,0,0,0.5);
+      padding: 20px;
+      border-radius: 15px;
+      text-align: center;
+      width: 350px;
+      box-shadow: 0 8px 15px rgba(0,0,0,0.3);
+    }
+    input, button {
+      padding: 10px;
+      margin: 10px 0;
+      border: none;
+      border-radius: 8px;
+    }
+    input {
+      width: 90%;
+      font-size: 1rem;
+    }
+    button {
+      background: #00c6ff;
+      color: white;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #0072ff;
+    }
+    #output {
+      margin-top: 15px;
+      font-size: 1.1rem;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>🌐 AI Voice Agent - Special Skill</h2>
+    <input type="text" id="query" placeholder="Try: weather: jabalpur">
+    <button onclick="askAgent()">Ask</button>
+    <div id="output">🤖 Waiting for your question...</div>
+  </div>
+
+  <script>
+    async function askAgent() {
+      const query = document.getElementById("query").value;
+      const outputDiv = document.getElementById("output");
+      outputDiv.textContent = "⏳ Thinking...";
+
+      try {
+        const response = await fetch("/ask", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ query })
+        });
+
+        const data = await response.json();
+
+        if (data.error) {
+          outputDiv.textContent = "❌ " + data.error;
+        } else if (data.city) {
+          outputDiv.textContent = `🌍 Weather in ${data.city}: 🌡️ ${data.temperature}°C, 💨 ${data.windspeed} km/h`;
+        } else {
+          outputDiv.textContent = "🤖 " + (data.response || "No response.");
+        }
+      } catch (err) {
+        outputDiv.textContent = "❌ Error: " + err.message;
+      }
+    }
+  </script>
+</body>
+</html>
